@@ -31,9 +31,9 @@ if(text.toLowerCase().startsWith("/open ")){let q=text.slice(6).trim();let ok=fa
 if(text.toLowerCase().startsWith("/settings ")){let q=text.slice(10).trim();let ok=false;try{ok=phoneAPI.openSettings(q)}catch(e){}bubble("assistant",ok?"Открываю настройки: "+q:"Неизвестный раздел настроек.");return}
 let cfg=JSON.parse(localStorage.getItem("cfg")||"{}");if(!cfg.key){bubble("assistant","Сначала добавь API-ключ в настройках.");openSettings();return}
 let pending=bubble("assistant","Думаю…",false);$("status").textContent="Запрос к "+cfg.provider;
-try{let answer=await ask(cfg,text);pending.textContent=answer;history.push({role:"user",content:text},{role:"assistant",content:answer});localStorage.setItem("history",JSON.stringify(history));}catch(e){pending.textContent="Ошибка API: "+e.message}finally{$("status").textContent="Готов к работе"}}
+try{let answer=await ask(cfg,text);pending.textContent=answer;history.push({role:"assistant",content:answer});localStorage.setItem("history",JSON.stringify(history));}catch(e){pending.textContent="Ошибка API: "+e.message}finally{$("status").textContent="Готов к работе"}}
 async function ask(c,text){let p=c.provider||"openai",model=c.model||defaults[p].model,base=(c.base||defaults[p].base).replace(/\/$/,"");
-let msgs=[...history.filter(x=>x.role==="user"||x.role==="assistant"),{role:"user",content:text}];
+let msgs=history.filter(x=>x.role==="user"||x.role==="assistant");
 let url,headers={"Content-Type":"application/json"},body;
 if(p==="anthropic"){url=base+"/v1/messages";headers["x-api-key"]=c.key;headers["anthropic-version"]="2023-06-01";headers["anthropic-dangerous-direct-browser-access"]="true";body={model,max_tokens:2048,messages:msgs.map(m=>({role:m.role,content:m.content}))}}
 else if(p==="gemini"){url=base+"/models/"+model+":generateContent?key="+encodeURIComponent(c.key);body={contents:msgs.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}))}}
