@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="color-scheme" content="dark"><title>AI Chat</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#10151d;color:#edf2f8}*{box-sizing:border-box}body{margin:0;height:100dvh;display:flex;flex-direction:column;background:radial-gradient(circle at 80% 0,#1d3450 0,transparent 38%),#10151d}.top{padding:14px 16px;border-bottom:1px solid #293443;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:750;font-size:18px}.muted{color:#93a4b8;font-size:12px}.btn,button{background:#243449;color:#eaf3ff;border:1px solid #3b5069;border-radius:12px;padding:10px 13px;font-weight:600}.btn:active,button:active{opacity:.7}#messages{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}.msg{max-width:92%;padding:12px 14px;border-radius:16px;white-space:pre-wrap;line-height:1.45;overflow-wrap:anywhere}.user{align-self:flex-end;background:#285a86}.assistant{align-self:flex-start;background:#1b2634;border:1px solid #2c3b4e}.system{align-self:center;color:#9db0c6;font-size:12px}.bottom{padding:12px;border-top:1px solid #293443;background:#111923}.entry{display:flex;gap:8px}.entry textarea{flex:1;resize:none;min-height:46px;max-height:130px;border-radius:14px;padding:12px;background:#1a2634;color:white;border:1px solid #3a4b60;font:inherit}.send{background:#2779c7;border:0;min-width:62px}.toolbar{display:flex;gap:7px;overflow:auto;padding-top:9px}.toolbar button{white-space:nowrap;font-size:12px;padding:8px}.panel{position:fixed;inset:0;background:#10151d;z-index:5;display:none;overflow:auto;padding:18px}.panel.open{display:block}.panel h2{margin:4px 0 16px}.field{display:flex;flex-direction:column;gap:6px;margin:13px 0}.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid #405168;background:#1a2634;color:#fff;font:inherit}.row{display:flex;gap:8px}.row>*{flex:1}.hint{font-size:12px;color:#91a3b7;line-height:1.5}.danger{background:#542d36;border-color:#74434e}
+</style></head><body>
+<header class="top"><div><div class="brand">✦ AI Chat</div><div class="muted" id="status">Готов к работе</div></div><button onclick="openSettings()">Настройки</button></header>
+<main id="messages"><div class="msg assistant">Привет! Я AI Chat. Добавь API-ключ в настройках и выбери модель. Также доступны команды управления телефоном: /open название приложения, /settings wifi, /phoneinfo.</div></main>
+<footer class="bottom"><div class="entry"><textarea id="prompt" rows="1" placeholder="Напиши сообщение…"></textarea><button class="send" id="send">➤</button></div><div class="toolbar"><button onclick="phoneCommand('/phoneinfo')">Информация о телефоне</button><button onclick="phoneCommand('/settings wifi')">Wi-Fi</button><button onclick="phoneCommand('/settings bluetooth')">Bluetooth</button><button onclick="phoneCommand('/settings display')">Экран</button></div></footer>
+<section class="panel" id="settings"><div class="row"><h2>Настройки API</h2><button onclick="closeSettings()">Готово</button></div>
+<div class="field"><label>Провайдер</label><select id="provider"><option value="openai">OpenAI</option><option value="anthropic">Claude / Anthropic</option><option value="deepseek">DeepSeek</option><option value="groq">Groq</option><option value="openrouter">OpenRouter</option><option value="gemini">Google Gemini</option><option value="custom">Другой OpenAI-compatible API</option></select></div>
+<div class="field"><label>API key</label><input id="key" type="password" autocomplete="off" placeholder="Вставь свой API-ключ"></div>
+<div class="field"><label>Модель</label><input id="model" placeholder="Например: gpt-4o-mini"></div>
+<div class="field"><label>Base URL (для custom можно изменить)</label><input id="base" placeholder="https://api.openai.com/v1"></div>
+<p class="hint">Ключ хранится локально на устройстве в хранилище приложения. Не вставляй чужие ключи и не публикуй их. Запросы отправляются напрямую выбранному API-провайдеру.</p>
+<div class="row"><button onclick="saveSettings()">Сохранить</button><button class="danger" onclick="clearHistory()">Очистить чат</button></div>
+<hr><h3>Команды телефона</h3><p class="hint">/open WhatsApp — открыть приложение по названию<br>/settings wifi — Wi-Fi<br>/settings bluetooth — Bluetooth<br>/settings display — экран<br>/settings sound — звук<br>/settings location — геолокация<br>/settings apps — настройки приложений<br>/phoneinfo — сведения об устройстве</p>
+</section>
+<script>
+const $=id=>document.getElementById(id);let history=[];
+const defaults={openai:{model:"gpt-4o-mini",base:"https://api.openai.com/v1"},anthropic:{model:"claude-3-5-haiku-latest",base:"https://api.anthropic.com"},deepseek:{model:"deepseek-chat",base:"https://api.deepseek.com/v1"},groq:{model:"llama-3.3-70b-versatile",base:"https://api.groq.com/openai/v1"},openrouter:{model:"openai/gpt-4o-mini",base:"https://openrouter.ai/api/v1"},gemini:{model:"gemini-2.0-flash",base:"https://generativelanguage.googleapis.com/v1beta"},custom:{model:"",base:""}};
+function load(){let s=JSON.parse(localStorage.getItem("cfg")||"{}");$("provider").value=s.provider||"openai";$("key").value=s.key||"";$("model").value=s.model||defaults[$("provider").value].model;$("base").value=s.base||defaults[$("provider").value].base;history=JSON.parse(localStorage.getItem("history")||"[]");history.forEach(m=>bubble(m.role,m.content,false));}
+function openSettings(){$("settings").classList.add("open")}function closeSettings(){$("settings").classList.remove("open")}
+$("provider").onchange=()=>{let d=defaults[$("provider").value];$("model").value=d.model;$("base").value=d.base};
+function saveSettings(){localStorage.setItem("cfg",JSON.stringify({provider:$("provider").value,key:$("key").value.trim(),model:$("model").value.trim(),base:$("base").value.trim()}));closeSettings();$("status").textContent="Настройки сохранены"}
+function bubble(role,content,save=true){let d=document.createElement("div");d.className="msg "+(role==="user"?"user":"assistant");d.textContent=content;$("messages").appendChild(d);$("messages").scrollTop=$("messages").scrollHeight;if(save){history.push({role,content});localStorage.setItem("history",JSON.stringify(history))}return d}
+function clearHistory(){history=[];localStorage.removeItem("history");$("messages").innerHTML="";closeSettings()}
+function phoneCommand(cmd){$("prompt").value=cmd;send()}
+async function send(){let text=$("prompt").value.trim();if(!text)return;$("prompt").value="";bubble("user",text);
+if(text==="/phoneinfo"){try{bubble("assistant",phoneAPI.getDeviceInfo())}catch(e){bubble("assistant","Информация доступна только в Android-приложении.")}return}
+if(text.toLowerCase().startsWith("/open ")){let q=text.slice(6).trim();let ok=false;try{ok=phoneAPI.openApp(q)}catch(e){}bubble("assistant",ok?"Открываю "+q:"Не удалось найти приложение «"+q+"». Проверь название.") ;return}
+if(text.toLowerCase().startsWith("/settings ")){let q=text.slice(10).trim();let ok=false;try{ok=phoneAPI.openSettings(q)}catch(e){}bubble("assistant",ok?"Открываю настройки: "+q:"Неизвестный раздел настроек.");return}
+let cfg=JSON.parse(localStorage.getItem("cfg")||"{}");if(!cfg.key){bubble("assistant","Сначала добавь API-ключ в настройках.");openSettings();return}
+let pending=bubble("assistant","Думаю…",false);$("status").textContent="Запрос к "+cfg.provider;
+try{let answer=await ask(cfg,text);pending.textContent=answer;history.push({role:"user",content:text},{role:"assistant",content:answer});localStorage.setItem("history",JSON.stringify(history));}catch(e){pending.textContent="Ошибка API: "+e.message}finally{$("status").textContent="Готов к работе"}}
+async function ask(c,text){let p=c.provider||"openai",model=c.model||defaults[p].model,base=(c.base||defaults[p].base).replace(/\/$/,"");
+let msgs=[...history.filter(x=>x.role==="user"||x.role==="assistant"),{role:"user",content:text}];
+let url,headers={"Content-Type":"application/json"},body;
+if(p==="anthropic"){url=base+"/v1/messages";headers["x-api-key"]=c.key;headers["anthropic-version"]="2023-06-01";headers["anthropic-dangerous-direct-browser-access"]="true";body={model,max_tokens:2048,messages:msgs.map(m=>({role:m.role,content:m.content}))}}
+else if(p==="gemini"){url=base+"/models/"+model+":generateContent?key="+encodeURIComponent(c.key);body={contents:msgs.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}))}}
+else{url=base+"/chat/completions";headers.Authorization="Bearer "+c.key;body={model,messages:msgs,stream:false}}
+let r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)});let data=await r.json();if(!r.ok)throw new Error(data.error?.message||data.message||("HTTP "+r.status));
+if(p==="anthropic")return(data.content||[]).map(x=>x.text||"").join("\n")||"Пустой ответ";
+if(p==="gemini")return data.candidates?.[0]?.content?.parts?.map(x=>x.text||"").join("\n")||"Пустой ответ";
+return data.choices?.[0]?.message?.content||"Пустой ответ"}
+$("send").onclick=send;$("prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});load();
+</script></body></html>
